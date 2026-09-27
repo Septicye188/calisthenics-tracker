@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Calisthenics weekly workout tracker - tick off each exercise as you complete it">
+<title>Calisthenics Tracker</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 12px 10px 20px;
+  }
+  .app-header {
+    text-align: center;
+    padding: 10px 0 6px;
+    border-bottom: 1px solid #21262d;
+    margin-bottom: 10px;
+  }
+  .app-header h1 {
+    font-size: 1.4rem;
+    color: #58a6ff;
+    font-weight: 700;
+  }
+  .app-header .subtitle {
+    font-size: 0.75rem;
+    color: #8b949e;
+  }
+  .day-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .day-tabs::-webkit-scrollbar { display: none; }
+  .day-tab {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #8b949e;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    touch-action: manipulation;
+  }
+  .day-tab.active {
+    background: #1f6feb;
+    border-color: #1f6feb;
+    color: #fff;
+  }
+  .day-tab.done {
+    background: #238636;
+    border-color: #238636;
+    color: #fff;
+  }
+  .day-tab.done.active {
+    background: #238636;
+    border-color: #30363d;
+  }
+  .section {
+    background: #161b22;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border: 1px solid #21262d;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #58a6ff;
+  }
+  .section-hint {
+    font-size: 0.7rem;
+    color: #8b949e;
+    margin-left: auto;
+    font-weight: 400;
+  }
+  .check-all-btn {
+    font-size: 0.65rem;
+    color: #8b949e;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    touch-action: manipulation;
+  }
+  .check-all-btn:active { background: #30363d; }
+  .exercise {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.4);
+  }
+  .exercise:last-child { border-bottom: none; }
+  .cb-wrap {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    position: relative;
+    touch-action: manipulation;
+  }
+  .cb {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #58a6ff;
+    border-radius: 5px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.12s;
+    touch-action: manipulation;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .cb.checked {
+    background: #3fb950;
+    border-color: #3fb950;
+  }
+  .cb.checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 6px;
+    height: 10px;
+    border: solid #0d1117;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .ex-content { flex: 1; min-width: 0; }
+  .ex-name {
+    font-weight: 500;
+    color: #e6edf3;
+    font-size: 0.88rem;
+    line-height: 1.3;
+  }
+  .ex-detail {
+    font-size: 0.75rem;
+    color: #8b949e;
+    margin-top: 2px;
+    line-height: 1.35;
+  }
+  .ex-meta {
+    color: #f0883e;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .footer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #161b22;
+    border-top: 1px solid #21262d;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+  .progress-stat {
+    font-size: 0.85rem;
+    color: #8b949e;
+  }
+  .progress-stat strong { color: #e6edf3; }
+  .reset-btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    color: #8b949e;
+    font-size: 0.75rem;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .reset-btn:active { background: #21262d; }
+  .completion-banner {
+    text-align: center;
+    padding: 8px;
+    margin-bottom: 10px;
+    background: #238636;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: none;
+  }
+  .completion-banner.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>💪 Calisthenics</h1>
+  <div class="subtitle">Tap each exercise as you do it — progress saves automatically</div>
+</div>
+
+<div class="day-tabs" id="dayTabs"></div>
+
+<div class="completion-banner" id="completionBanner"></div>
+
+<div id="dayContent"></div>
+
+<div class="footer-bar">
+  <div class="progress-stat" id="globalProgress">0 / 0 done</div>
+  <button class="reset-btn" onclick="confirmReset()">Reset</button>
+</div>
+
+<script>
+const DAYS = [
+  // ── MONDAY: PUSH DAY ──
+  {
+    id: 'monday',
+    label: 'Mon • Push',
+    sections: [
+      {
+        title: 'Core & Joint Prep',
+        hint: 'Rest optional',
+        exercises: [
+          { name: 'Scapula Push-Ups', meta: '2×8–12', detail: 'Keep arms straight, sink chest slightly, push shoulder blades apart, then back together. Strengthens scapular control.' },
+          { name: 'Hollow Body Hold', meta: '2×30s', detail: 'Lie on back, lift shoulders and legs off floor, arms overhead. Builds core tension and stability.' },
+          { name: 'Side Planks', meta: '2×30s each side', detail: 'Support body on one elbow, hips lifted. Strengthens obliques and lateral core.' }
+        ]
+      },
+      {
+        title: 'Warm Up',
+        hint: 'Rest optional',
+        exercises: [
+          { name: 'Arm Circles', meta: '1×30s', detail: 'Rotate arms forward and backward to warm shoulder joints.' },
+          { name: 'Pike to Plank', meta: '1×30s', detail: 'Move from pike position to plank repeatedly. Preps shoulders, hamstrings, core.' },
+          { name: 'Alternate T-Pose', meta: '1×30s', detail: 'Lie on stomach, lift opposite arm and leg. Activates posterior chain.' },
+          { name: 'Knuckles → Fingers → Palms', meta: '1×30s', detail: 'Shift between fist, fingertips, and palm on floor. Warms wrists for push work.' },
+          { name: 'Plank Walks', meta: '1×30s', detail: 'Move hands and feet forward/back in plank. Engages core and shoulders dynamically.' },
+          { name: 'Skipping', meta: '1×60s', detail: 'Jump rope or mimic jumps. Raises heart rate.' },
+          { name: 'High Knees', meta: '1×60s', detail: 'Run in place, knees high. Activates legs and core.' }
+        ]
+      },
+      {
+        title: 'Workout',
+        hint: 'Rest: ≥90s',
+        exercises: [
+          { name: 'Planche Lean', meta: '2×10s', detail: 'Lean forward from plank, shoulders over hands. Trains planche strength and shoulder stability.' },
+          { name: 'Hindu Push-Ups', meta: '3×7', detail: 'Start in downward dog, swoop chest forward, arch back, return. Full-body push, shoulder mobility, chest engagement.' },
+          { name: 'Bodyweight Dips', meta: '3×7', detail: 'Lower and lift body on parallel bars or bench. Builds triceps, chest, anterior shoulder strength.' },
+          { name: 'Pike Push-Ups', meta: '2×4', detail: 'Hips high, push head toward floor. Overhead pressing and shoulder strength.' },
+          { name: 'Diamond Push-Ups', meta: '3×6', detail: 'Hands form diamond shape, elbows close. Triceps-focused push.' },
+          { name: 'Wall Handstand', meta: '3×15s', detail: 'Kick up against wall, hold. Trains balance, alignment, shoulder endurance.' }
+        ]
+      },
+      {
+        title: 'Cardio Flush',
+        hint: 'Pick 1 — 5 min',
+        exercises: [
+          { name: 'Jog', detail: 'Light steady running. Improves circulation and flushes fatigue.' },
+          { name: 'Skipping', detail: 'Jump rope at relaxed pace. Light cardio + coordination.' },
+          { name: 'Shadowboxing', detail: 'Throw controlled punches while moving lightly. Cardio + rhythm + shoulder endurance.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Deep Squat Hold', meta: '30s', detail: 'Sit into deepest squat, chest up, elbows pushing knees apart. Opens hips, ankles, lower back.' },
+          { name: 'Forward Fold', meta: '30s', detail: 'Reach toward floor with straight legs, relaxed neck. Stretches hamstrings and lower back.' },
+          { name: 'Chest Opener Stretch', meta: '30s', detail: 'Clasp hands behind you or use doorway and pull chest open. Releases tension in chest and shoulders.' },
+          { name: 'Hip Flexor Stretch', meta: '30s', detail: 'Kneeling lunge, push hips forward while keeping ribs down. Stretches hip flexors and quads.' }
+        ]
+      }
+    ]
+  },
+  // ── TUESDAY: PULL DAY ──
+  {
+    id: 'tuesday',
+    label: 'Tue • Pull',
+    sections: [
+      {
+        title: 'Core & Joint Prep',
+        hint: 'Rest optional',
+        exercises: [
+          { name: 'Cat and Cow Pose', meta: '1×45s', detail: 'Arch and round spine slowly. Prepares spine for pulling movements.' },
+          { name: 'Bird Dog Pose', meta: '1×45s', detail: 'Opposite arm/leg lift, hold briefly. Core + spinal stability.' },
+          { name: 'Scapular Pull-Ups', meta: '2×8–12', detail: 'Hang from bar, pull shoulder blades down/up without bending elbows. Warms lats and scapula for pulling.' }
+        ]
+      },
+      {
+        title: 'Warm Up',
+        hint: 'Rest 30s',
+        exercises: [
+          { name: "Superman's", meta: '1×8–12', detail: 'Lie prone, lift arms and legs. Posterior chain activation.' },
+          { name: 'Superman Side Crunches', meta: '1×8–12 each side', detail: 'Lift opposite arm and leg, crunch toward midline. Oblique + back control.' },
+          { name: 'Cobra Push-Ups', meta: '1×8–12', detail: 'From prone, push chest forward, arch back slightly. Mobilizes spine and strengthens posterior chain.' },
+          { name: 'Reverse Planks', meta: '1×8–12', detail: 'Lift hips while facing ceiling. Core, posterior chain, shoulder stability.' }
+        ]
+      },
+      {
+        title: 'Workout',
+        hint: 'Rest: ≥90s',
+        exercises: [
+          { name: 'Front Lever Raises (FL Raise)', meta: '2×6', detail: 'Pull body horizontal from hanging. Core + lat strength.' },
+          { name: 'Skin the Cats', meta: '3×4', detail: 'Hang, roll through shoulders, return. Builds shoulder mobility and back strength.' },
+          { name: 'Bodyweight Rows', meta: '3×7', detail: 'Pull chest to bar at incline. Upper-back and biceps.' },
+          { name: 'Pull-Ups', meta: '3×5', detail: 'Classic vertical pull. Lats, biceps, scapular control.' },
+          { name: 'Bodyweight Curls', meta: '3×7', detail: 'Curl using rings or bar. Biceps and forearms.' },
+          { name: 'Wall Handstand', meta: '3×15s', detail: 'Balance + shoulder endurance.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Standing Quad Stretch', meta: '45s each side', detail: 'Standing quad stretch.' },
+          { name: 'Hamstring Stretch (seated or standing)', meta: '60s each side', detail: 'Hamstring stretch.' },
+          { name: 'Figure-4 Glute Stretch', meta: '45s each side', detail: 'Figure-4 glute stretch.' },
+          { name: 'Hip Flexor Lunge Stretch', meta: '45s each side', detail: 'Hip flexor lunge stretch.' },
+          { name: 'Deep Breathing + Forward Fold', meta: '30s', detail: 'Deep breathing + forward fold.' }
+        ]
+      }
+    ]
+  },
+  // ── WEDNESDAY: LEG DAY ──
+  {
+    id: 'wednesday',
+    label: 'Wed • Legs',
+    sections: [
+      {
+        title: 'Core & Joint Prep',
+        hint: '',
+        exercises: [
+          { name: 'Ankle Circles', meta: '30s each', detail: 'Lift one foot and rotate the ankle slowly in full circles. Loosens ankles; improves balance.' },
+          { name: 'Knee Circles', meta: '20s', detail: 'Hands on knees, make smooth circles in both directions. Warms and lubricates knee joints.' },
+          { name: 'Hip CARs', meta: '5 each direction', detail: 'Lift knee and draw the biggest controlled circle you can. Improves hip mobility and control.' },
+          { name: 'Dead Bug', meta: '2×20s', detail: 'Opposite arm and leg extend while lower back stays flat on floor. Strengthens deep core and stabilizes spine.' }
+        ]
+      },
+      {
+        title: 'Warm Up',
+        hint: 'Rest optional',
+        exercises: [
+          { name: 'Heel to Toe Walk', meta: '1×30s', detail: 'Walk forward rolling heel → toe. Ankle mobility and balance.' },
+          { name: 'Folded Squat', meta: '1×30s', detail: 'Squat deeply, fold forward slightly. Opens hips and hamstrings.' },
+          { name: 'Alternating Archer Squat', meta: '1×30s', detail: 'Step side, bend one knee, keep other leg straight. Hip mobility + unilateral leg strength.' },
+          { name: 'Skipping', meta: '1×30s', detail: 'Raise heart rate.' },
+          { name: 'High Knees', meta: '1×30s', detail: 'Leg activation.' }
+        ]
+      },
+      {
+        title: 'Workout',
+        hint: 'Rest: ≥90s',
+        exercises: [
+          { name: 'Straight Leg BW RDLs', meta: '2×10 each side', detail: 'Hinge at hips, extend one leg back. Hamstring + glute strength + balance.' },
+          { name: 'Squats', meta: '3×7', detail: 'Standard bodyweight squats. Leg strength.' },
+          { name: 'Step-Ups', meta: '3×6 each side', detail: 'Step onto elevated surface. Quads, glutes, balance.' },
+          { name: 'Reverse Lunges', meta: '3×8 each side', detail: 'Step backward, lower body. Leg unilateral strength.' },
+          { name: 'Horse Stance', meta: '1×45s', detail: 'Wide squat, hold. Hip endurance.' },
+          { name: 'Calf Raises', meta: '2×12', detail: 'Raise heels up. Calf strength.' },
+          { name: 'Negative Pistol Squats', meta: '2×4 each leg', detail: 'Lower slowly to one leg squat. Leg strength and control.' },
+          { name: 'Compact Leg Lifts', meta: '3×8', detail: 'Sit with hands next to knees, lift legs and crunch. Lower ab/core activation.' },
+          { name: 'One-Leg Plank', meta: '1×45s', detail: 'Plank with one leg raised. Core + balance.' },
+          { name: 'Hollow Body Hold', meta: '3×max', detail: 'Abdominal strength.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Cobra / Upward Dog Stretch', meta: '60s', detail: 'Cobra / upward dog stretch.' },
+          { name: "Child's Pose", meta: '60s', detail: "Child's pose." },
+          { name: 'Seated Side Bend', meta: '45s each side', detail: 'Seated side bend.' },
+          { name: 'Supine Spinal Twist', meta: '45s each side', detail: 'Supine spinal twist.' },
+          { name: 'Knees-to-Chest Hug', meta: '30s', detail: 'Knees-to-chest hug.' }
+        ]
+      }
+    ]
+  },
+  // ── THURSDAY: CARDIO + MOBILITY ──
+  {
+    id: 'thursday',
+    label: 'Thu • Cardio',
+    sections: [
+      {
+        title: 'Workout',
+        hint: 'Rest: 30–60s',
+        exercises: [
+          { name: 'Exercise Bike or Run', meta: '1×15–30 min', detail: 'Steady pace cardio. Improves conditioning and circulation.' },
+          { name: 'Cat and Cow Pose', meta: '1×60s', detail: 'Spinal mobility.' },
+          { name: 'Cobra Pose', meta: '1×60s', detail: 'Opens chest and stretches abs.' },
+          { name: "Superman's", meta: '1×60s', detail: 'Posterior chain activation.' },
+          { name: 'Reverse Snow Angels', meta: '1×60s', detail: 'Lying on stomach, move arms side → overhead. Back + shoulder mobility.' },
+          { name: 'Squat to Pike Hold', meta: '1×60s', detail: 'Squat, straighten legs into pike. Hip + hamstring stretch.' },
+          { name: 'Prayer Squat', meta: '1×60s', detail: 'Squat, hands pressed together, push knees apart. Hip opening + mobility.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Doorframe Lat Stretch', meta: '45s each side', detail: 'Doorframe lat stretch.' },
+          { name: 'Cross-Body Shoulder Stretch', meta: '45s each side', detail: 'Cross-body shoulder stretch.' },
+          { name: 'Biceps Wall Stretch', meta: '45s each side', detail: 'Biceps wall stretch.' },
+          { name: "Child's Pose with arms long", meta: '60s', detail: "Child's pose with arms long." },
+          { name: 'Gentle Standing Forward Fold', meta: '30s', detail: 'Gentle standing forward fold.' }
+        ]
+      }
+    ]
+  },
+  // ── FRIDAY: FULL BODY ──
+  {
+    id: 'friday',
+    label: 'Fri • Full Body',
+    sections: [
+      {
+        title: 'Core & Joint Prep',
+        hint: '',
+        exercises: [
+          { name: 'Wrist Circles', meta: '45s', detail: 'Move hands in slow circles, palms down and palms up. Warms up wrist joints for handstands and pressure work.' },
+          { name: 'Scap Push-Ups', meta: '2×10', detail: 'Scap shrugs — keep arms straight, pull shoulder blades up/down without bending elbows. Strengthens scapular stability.' },
+          { name: 'Dead Bug', meta: '2×30s', detail: 'Lie on back, arms up; slowly extend opposite arm and leg while keeping lower back pressed to floor. Builds core control and protects spine.' }
+        ]
+      },
+      {
+        title: 'Warm Up',
+        hint: 'Rest optional',
+        exercises: [
+          { name: 'Light Jog', meta: '1 min', detail: 'Easy pace jog in place or around room. Raises heart rate and loosens the body.' },
+          { name: 'Shoulder Pass-Throughs', meta: '15 reps', detail: 'Hold a stick/band wide, bring it from hips → overhead → behind your back. Improves shoulder mobility and posture.' },
+          { name: 'Cat–Cow', meta: '30s', detail: 'Arch and round spine slowly. Spinal mobility.' },
+          { name: 'Arm Circles', meta: '30s', detail: 'Rotate arms forward and backward to warm shoulder joints.' },
+          { name: 'Hip CARs', meta: '5 each direction', detail: 'Stand tall and draw the largest hip circle you can without twisting torso. Enhances hip mobility and control.' }
+        ]
+      },
+      {
+        title: 'Workout',
+        hint: 'Rest: ≥90s',
+        exercises: [
+          { name: 'Bird Dog Pose', meta: '2×12 each side', detail: 'Opposite arm/leg lift for spinal stability.' },
+          { name: 'Pike to Planche Lean', meta: '3×5', detail: 'Lean forward from plank. Shoulder + core strength.' },
+          { name: 'Incline Push-Ups', meta: '3×12', detail: 'Chest + triceps push.' },
+          { name: 'Cobra Push-Ups', meta: '1×15', detail: 'Chest + spinal extension.' },
+          { name: 'Back Bridge Presses', meta: '3×5', detail: 'Arch back to strengthen posterior chain.' },
+          { name: 'Hammer Grip Pull-Ups', meta: '3×6', detail: 'Pull-ups with palms facing each other. Biceps + back.' },
+          { name: 'Archer Squats', meta: '2×6 each leg', detail: 'Step to side, control body. Leg unilateral strength.' },
+          { name: 'Bulgarian Split Squats', meta: '2×6', detail: 'Rear foot elevated, lunge. Quads + balance.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Butterfly Stretch', meta: '60s', detail: 'Butterfly stretch.' },
+          { name: 'Seated Forward Fold', meta: '60s', detail: 'Seated forward fold.' },
+          { name: '90/90 Hip Rotations', meta: '45s each side', detail: '90/90 hip rotations.' },
+          { name: 'Cat-Cow Slow Flow', meta: '60s', detail: 'Cat-cow slow flow.' },
+          { name: 'Lying Diaphragmatic Breathing', meta: '1 min', detail: 'Lying diaphragmatic breathing.' }
+        ]
+      }
+    ]
+  },
+  // ── SATURDAY: LEG DAY ──
+  {
+    id: 'saturday',
+    label: 'Sat • Legs',
+    sections: [
+      {
+        title: 'Core & Joint Prep',
+        hint: '',
+        exercises: [
+          { name: 'Ankle Circles', meta: '30s each', detail: 'Lift one foot and rotate the ankle slowly in full circles. Loosens ankles; improves balance.' },
+          { name: 'Knee Circles', meta: '20s', detail: 'Hands on knees, make smooth circles in both directions. Warms and lubricates knee joints.' },
+          { name: 'Hip CARs', meta: '5 each direction', detail: 'Lift knee and draw the biggest controlled circle you can. Improves hip mobility and control.' },
+          { name: 'Dead Bug', meta: '2×20s', detail: 'Opposite arm and leg extend while lower back stays flat on floor. Strengthens deep core and stabilizes spine.' }
+        ]
+      },
+      {
+        title: 'Warm Up',
+        hint: 'Rest optional',
+        exercises: [
+          { name: 'Leg Swings (front/back)', meta: '10 each side', detail: 'Leg swings front and back.' },
+          { name: 'Leg Swings (side/side)', meta: '10 each side', detail: 'Leg swings side to side.' },
+          { name: 'Walking Lunges', meta: '10 total', detail: 'Walking lunges.' },
+          { name: 'Bodyweight Squats', meta: '10 reps', detail: 'Bodyweight squats.' }
+        ]
+      },
+      {
+        title: 'Workout',
+        hint: 'Rest: ≥90s',
+        exercises: [
+          { name: 'Archer Squats', meta: '3×6', detail: 'Step to side, control body. Leg unilateral strength.' },
+          { name: 'Step-Ups', meta: '3×12 each side', detail: 'Step onto elevated surface. Quads, glutes, balance.' },
+          { name: 'Single Leg Glute Bridges', meta: '3×8', detail: 'Single leg glute bridges.' },
+          { name: 'Sissy Squats', meta: '2×8', detail: 'Sissy squats.' },
+          { name: 'Wall Sits', meta: '3×60s', detail: 'Wall sits.' },
+          { name: 'Hollow Body Holds', meta: '3×max', detail: 'Hollow body holds.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Deep Squat Hold', meta: '30s', detail: 'Sit into deepest squat, chest up, elbows pushing knees apart. Opens hips, ankles, lower back.' },
+          { name: 'Quad Stretch', meta: '30s each side', detail: 'Quad stretch.' },
+          { name: 'Hamstring Forward Fold', meta: '30s', detail: 'Hamstring forward fold.' },
+          { name: 'Calf Stretch', meta: '30s each side', detail: 'Calf stretch.' }
+        ]
+      }
+    ]
+  },
+  // ── SUNDAY: SKILLS + ACTIVE RECOVERY ──
+  {
+    id: 'sunday',
+    label: 'Sun • Skills',
+    sections: [
+      {
+        title: 'Core & Joint Prep',
+        hint: '',
+        exercises: [
+          { name: 'Wrist Circles', meta: '45s', detail: 'Move hands in slow circles, palms down and palms up. Warms up wrist joints for handstands and pressure work.' },
+          { name: 'Scap Shrugs (hang or plank)', meta: '2×10', detail: 'In plank or hanging from bar: keep arms straight and pull shoulder blades up/down without bending elbows. Strengthens scapular stability for handstands and pulling.' },
+          { name: 'Dead Bug', meta: '2×30s', detail: 'Lie on back, arms up; slowly extend opposite arm and leg while keeping lower back pressed to floor. Builds core control and protects spine.' }
+        ]
+      },
+      {
+        title: 'Warm Up',
+        hint: '',
+        exercises: [
+          { name: 'Light Jog', meta: '1 min', detail: 'Easy pace jog in place or around the room. Raises heart rate and loosens the body.' },
+          { name: 'Shoulder Pass-Throughs', meta: '15 reps', detail: 'Hold a stick/band wide, bring it from hips → overhead → behind your back. Improves shoulder mobility and posture.' },
+          { name: 'Hip CARs', meta: '5 each direction', detail: 'Stand tall and draw the largest hip circle you can without twisting torso. Enhances hip mobility and control.' },
+          { name: 'Ankle Circles', meta: '30s each', detail: 'Lift one foot and rotate the ankle slowly through a full range. Increases ankle mobility and balance.' }
+        ]
+      },
+      {
+        title: 'Skill & Conditioning',
+        hint: 'Rest 60–90s',
+        exercises: [
+          { name: 'Hollow → Arch Transitions', meta: '3×6', detail: 'Roll from a hollow hold (banana) to an arch hold (superman) and back. Builds core tension and strengthens the full body for gymnastics skills.' },
+          { name: 'L-Sit Progression', meta: '3×8–12s', detail: 'Hold legs up on floor/bars: tuck → advanced tuck → one leg → full L-sit. Strengthens core, hip flexors, and shoulders.' },
+          { name: 'Handstand Technique Drills', meta: '3×10–15s or 6–8 attempts', detail: 'Wall-facing holds, toe pulls, kick-ups, or balance attempts. Improves handstand balance and alignment.' },
+          { name: 'Dead Hang', meta: '30–45s', detail: 'Hang from a bar with straight arms and slightly active shoulders. Grip strength + shoulder stability.' },
+          { name: 'Knee Raises', meta: '2×8', detail: 'Hang from a bar or use parallels and lift knees toward your chest. Lower-core activation + hip flexor strength.' },
+          { name: 'Single-Leg RDL Balance Reaches', meta: '2×6 each side', detail: 'Stand on one leg, hinge at the hips, and reach toward the floor with a flat back. Trains balance, hamstrings, and glute stability.' }
+        ]
+      },
+      {
+        title: 'Cardio Flush',
+        hint: 'Pick 1 — 5 min',
+        exercises: [
+          { name: 'Jog', detail: 'Light, steady running. Improves circulation and flushes fatigue.' },
+          { name: 'Skipping', detail: 'Jump rope at a relaxed pace. Light cardio + coordination.' },
+          { name: 'Shadowboxing', detail: 'Throw controlled punches while moving lightly. Cardio + rhythm + shoulder endurance.' }
+        ]
+      },
+      {
+        title: 'Cooldown Stretch',
+        hint: '',
+        exercises: [
+          { name: 'Deep Squat Hold', meta: '30s', detail: 'Sit into deepest squat, chest up, elbows pushing knees apart. Opens hips, ankles, lower back.' },
+          { name: 'Forward Fold', meta: '30s', detail: 'Reach toward floor with straight legs and relaxed neck. Stretches hamstrings and lower back.' },
+          { name: 'Chest Opener Stretch', meta: '30s', detail: 'Clasp hands behind you or use doorway and pull chest open. Releases tension in chest and shoulders.' },
+          { name: 'Hip Flexor Stretch', meta: '30s', detail: 'Kneeling lunge, push hips forward while keeping ribs down. Stretches hip flexors and quads.' }
+        ]
+      }
+    ]
+  }
+];
+
+// ── State ──
+const storageKey = 'calisthenics_tracker_v2';
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { checked: {} };
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch(e) {}
+}
+
+// Build unique key per exercise: dayId + sectionIndex + exerciseIndex
+function exKey(dayId, secIdx, exIdx) {
+  return dayId + ':' + secIdx + ':' + exIdx;
+}
+
+// ── Render ──
+let currentDay = 'monday';
+
+function renderDayTabs() {
+  const container = document.getElementById('dayTabs');
+  container.innerHTML = '';
+  DAYS.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'day-tab';
+    btn.textContent = day.label;
+    btn.dataset.day = day.id;
+    if (day.id === currentDay) btn.classList.add('active');
+    // Check if all exercises in this day are checked
+    let allDone = true;
+    day.sections.forEach((sec, si) => {
+      sec.exercises.forEach((ex, ei) => {
+        if (!state.checked[exKey(day.id, si, ei)]) allDone = false;
+      });
+    });
+    if (allDone) btn.classList.add('done');
+    btn.addEventListener('click', () => {
+      currentDay = day.id;
+      renderDayTabs();
+      renderDayContent();
+      updateFooter();
+      updateBanner();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderDayContent() {
+  const container = document.getElementById('dayContent');
+  const day = DAYS.find(d => d.id === currentDay);
+  if (!day) return;
+  container.innerHTML = '';
+  day.sections.forEach((sec, si) => {
+    const secEl = document.createElement('div');
+    secEl.className = 'section';
+    let html = '<div class="section-header">';
+    html += '<span class="section-title">' + sec.title + '</span>';
+    if (sec.hint) html += '<span class="section-hint">' + sec.hint + '</span>';
+    html += '<button class="check-all-btn" data-sec="' + si + '">check all</button>';
+    html += '</div>';
+    sec.exercises.forEach((ex, ei) => {
+      const key = exKey(day.id, si, ei);
+      const checked = state.checked[key] ? 'checked' : '';
+      html += '<div class="exercise">';
+      html += '<div class="cb-wrap"><div class="cb ' + checked + '" data-key="' + key + '"></div></div>';
+      html += '<div class="ex-content">';
+      html += '<span class="ex-name">' + ex.name + '<span class="ex-meta">' + (ex.meta || '') + '</span></span>';
+      html += '<div class="ex-detail">' + (ex.detail || '') + '</div>';
+      html += '</div></div>';
+    });
+    secEl.innerHTML = html;
+    container.appendChild(secEl);
+  });
+  // Attach check-all buttons
+  container.querySelectorAll('.check-all-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const si = parseInt(e.target.dataset.sec);
+      const day = DAYS.find(d => d.id === currentDay);
+      day.sections[si].exercises.forEach((ex, ei) => {
+        state.checked[exKey(currentDay, si, ei)] = true;
+      });
+      saveState();
+      renderDayContent();
+      renderDayTabs();
+      updateFooter();
+      updateBanner();
+    });
+  });
+  // Attach checkbox clicks
+  container.querySelectorAll('.cb').forEach(cb => {
+    cb.addEventListener('click', (e) => {
+      const key = e.target.dataset.key;
+      state.checked[key] = !state.checked[key];
+      saveState();
+      e.target.classList.toggle('checked');
+      renderDayTabs();
+      updateFooter();
+      updateBanner();
+    });
+  });
+}
+
+function updateFooter() {
+  const total = document.querySelectorAll('.cb').length;
+  const done = document.querySelectorAll('.cb.checked').length;
+  document.getElementById('globalProgress').innerHTML = done + ' / ' + total + ' done';
+}
+
+function updateBanner() {
+  const banner = document.getElementById('completionBanner');
+  const day = DAYS.find(d => d.id === currentDay);
+  let allDone = true;
+  day.sections.forEach((sec, si) => {
+    sec.exercises.forEach((ex, ei) => {
+      if (!state.checked[exKey(currentDay, si, ei)]) allDone = false;
+    });
+  });
+  if (allDone) {
+    banner.textContent = '✅ ' + day.label.replace('•', '').trim() + ' — all done!';
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function confirmReset() {
+  if (!confirm('Reset all workout progress?')) return;
+  state.checked = {};
+  saveState();
+  renderDayContent();
+  renderDayTabs();
+  updateFooter();
+  updateBanner();
+}
+
+// ── Init ──
+renderDayTabs();
+renderDayContent();
+updateFooter();
+updateBanner();
+</script>
+</body>
+</html>
