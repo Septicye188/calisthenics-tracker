@@ -2,7 +2,7 @@
   "name": "Calisthenics Tracker",
   "short_name": "Calisthenics",
   "description": "Weekly calisthenics workout tracker — tick off each exercise as you complete it",
-  "start_url": "/",
+  "start_url": "https://septicye188.github.io/calisthenics-tracker/",
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#1a1a2e",
